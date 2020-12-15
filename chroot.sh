@@ -39,9 +39,23 @@ echo " Часовой пояс установлен "
 echo "en_US.UTF-8 UTF-8" > /etc/locale.gen
 echo "ru_RU.UTF-8 UTF-8" >> /etc/locale.gen
 locale-gen
+echo " Добавим ucode cpu? "
+while
+    read -n1 -p  "
+    1 - Английский интерфейс
+
+    2 - Русский интерфейс: " i_int   # sends right after the keypress
+    echo ''
+    [[ "i_int" =~ [^12] ]]
+do
+if [[$i_int == 1]]; then 
+echo 'LC_CTYPE=ru_RU.UTF-8' > /etc/locale.conf
+elif
 echo 'LANG="ru_RU.UTF-8"' > /etc/locale.conf
+fi
 echo "KEYMAP=ru" >> /etc/vconsole.conf
-echo "FONT=cyr-sun16" >> /etc/vconsole.conf
+echo 'LOCALE="ru_RU.UTF-8"' >>/etc/vconsole.conf
+echo "FONT=ter-v12n" >> /etc/vconsole.conf
 echo ""
 echo " Укажите пароль для ROOT "
 passwd
@@ -53,7 +67,7 @@ echo 'Добавляем пароль для пользователя '$username
 echo ""
 passwd $username
 echo ""
-echo '%wheel ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
+echo '%wheel ALL=(ALL) ALL' >> /etc/sudoers
 echo ""
 pacman -Syy
 clear
@@ -67,18 +81,53 @@ echo ""
 echo "Какой загрузчик установить UEFI(systemd или GRUB) или Grub-legacy"
 while
     read -n1 -p  "
-    1 - UEFI(systemd-boot )
+    0 - UEFI (efibootmgr)
+
+    1 - UEFI(systemd-boot)
 
     2 - GRUB(legacy)
 
     3 - UEFI-GRUB: " t_bootloader # sends right after the keypress
 
     echo ''
-    [[ "$t_bootloader" =~ [^123] ]]
+    [[ "$t_bootloader" =~ [^0123] ]]
 do
     :
 done
-if [[ $t_bootloader == 1 ]]; then
+if [[$t_bootloader == 0]]; then
+echo " Добавим ucode cpu? "
+while
+    read -n1 -p  "
+    1 - amd
+
+    2 - intel
+
+    0 - ucode не добавляем : " i_cpu   # sends right after the keypress
+    echo ''
+    [[ "$i_cpu" =~ [^120] ]]
+do
+    :
+done
+if [[ $i_cpu == 0 ]]; then
+ucode_cpu = ""
+clear
+echo " Добавление ucode пропущено "
+elif [[ $i_cpu  == 1 ]]; then
+clear
+pacman -S amd-ucode --noconfirm
+elif [[ $i_cpu  == 2 ]]; then
+ucode_cpu = "initrd /amd-ucode.img"
+clear
+pacman -S intel-ucode  --noconfirm
+ucod_cpu = "initrd /intel-ucode.img"
+fi
+read -p "Укажите диск (пример  sda,sdb ): " disk
+read -p "Укажите номер раздела BOOT (пример  1,2 ): " boot_num
+read -p "Укажите раздел ROOT (пример  sda1,sdb2 ): " root
+read -p "Укажите раздел SWAP (пример  sda3,sdb4 ): " swap
+efibootmgr -d /dev/$disk -p $boot_num -c -L "Arch Linux" -l /vmlinuz-linux -u "root=/dev/$root rw $ucode_cpu resume=/dev/$swap initrd=/initramfs-linux.img"
+clear
+elif [[ $t_bootloader == 1 ]]; then
 bootctl install
 clear
 echo ' default arch ' > /boot/loader/loader.conf
@@ -174,36 +223,13 @@ fi
 elif [[ $t_bootloader == 3 ]]; then
 pacman -S grub os-prober --noconfirm
 grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB
+
 grub-mkconfig -o /boot/grub/grub.cfg
 fi
 mkinitcpio -p linux
 ##########
 echo ""
-#echo " Настроим Sudo? "
-#while
-#    read -n1 -p  "
-#    1 - с паролем
-#
-#    2 - без пароля
-#
-#    0 - Sudo не добавляем : " i_sudo   # sends right after the keypress
-#    echo ''
-#    [[ "$i_sudo" =~ [^120] ]]
-#do
-#    :
-#done
-#if [[ $i_sudo  == 0 ]]; then
-#clear
-#echo " Добавление sudo пропущено"
-#elif [[ $i_sudo  == 1 ]]; then
 echo '%wheel ALL=(ALL) ALL' >> /etc/sudoers
-#clear
-#echo " Sudo с запросом пароля установлено "
-#elif [[ $i_sudo  == 2 ]]; then
-#echo '%wheel ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
-#clear
-#echo " Sudo nopassword добавлено  "
-#fi
 ###########
 echo ""
 echo ""
@@ -211,26 +237,6 @@ echo " Добавление Multilib репозитория"
 echo '[multilib]' >> /etc/pacman.conf
 echo 'Include = /etc/pacman.d/mirrorlist' >> /etc/pacman.conf
 echo " Multilib репозиторий добавлен"
-#echo " Настроим multilib? "
-#while
-#    read -n1 -p  "
-#    1 - да
-#
-#    0 - нет : " i_multilib   # sends right after the keypress
-#    echo ''
-#    [[ "$i_multilib" =~ [^10] ]]
-#do
-#    :
-#done
-#if [[ $i_multilib  == 0 ]]; then
-#clear
-#echo " Добавление мультилиб репозитория  пропущено"
-#elif [[ $i_multilib  == 1 ]]; then
-#echo '[multilib]' >> /etc/pacman.conf
-#echo 'Include = /etc/pacman.d/mirrorlist' >> /etc/pacman.conf
-#clear
-#echo " Multilib репозиторий добавлен"
-#fi
 ######
 pacman -Sy xorg-server xorg-drivers --noconfirm
 clear
@@ -246,7 +252,7 @@ echo " Установка KDE и набора программ "
 
 # Последний вариант
 
-pacman -Sy plasma kde-system-meta kio-extras konsole yakuake htop dkms --noconfirm
+pacman -Sy plasma kde-system-meta kio-extras yakuake htop dkms --noconfirm
 
 pacman -S alsa-utils ark aspell aspell-en aspell-ru audacious audacious-plugins bat bind bleachbit --noconfirm
 
@@ -264,7 +270,7 @@ pacman -S pamac-aur perl-image-exiftool partitionmanager pcmanfm pkgfile p7zip p
 
 pacman -S python-pip python-virtualenv qbittorrent plasma5-applets-weather-widget qt5-xmlpatterns systemd-kcm sddm-kcm smplayer --noconfirm
 
-pacman -S smplayer-themes sox spectacle terminus-font terminus-font-otb timeshift --noconfirm
+pacman -S smplayer-themes sox spectacle terminus-font-otb timeshift --noconfirm
 
 pacman -S ttf-arphic-ukai ttf-arphic-uming ttf-caladea ttf-carlito ttf-croscore ttf-dejavu ttf-inconsolata --noconfirm
 
@@ -294,16 +300,11 @@ echo "Хук добавлен "
 clear
 echo " "
 
-#curl -O https://download.sublimetext.com/sublimehq-pub.gpg && sudo pacman-key --add sublimehq-pub.gpg && sudo pacman-key --lsign-key 8A8F901A && rm sublimehq-pub.gpg
-#echo -e "\n[sublime-text]\nServer = https://download.sublimetext.com/arch/stable/x86_64" | sudo tee -a /etc/pacman.conf
-#clear
-#pacman -Sy sublime-text --noconfirm --overwrite='*' --noconfirm
-clear
-echo " "
-
+if [[ $t_bootloader == 2 or $t_bootloader == 3]]; then
 grub-mkfont -s 16 -o /boot/grub/ter-u16b.pf2 /usr/share/fonts/misc/ter-u16b.otb
 grub-mkconfig -o /boot/grub/grub.cfg
-clear
+fi
+
 pacman -S xorg-xinit --noconfirm
 cp /etc/X11/xinit/xinitrc /home/$username/.xinitrc
 chown $username:users /home/$username/.xinitrc
@@ -325,49 +326,6 @@ echo " установка sddm  завершена "
 pacman -Sy networkmanager networkmanager-openvpn network-manager-applet --noconfirm
 systemctl enable NetworkManager.service
 #systemctl enable dhcpcd.service
-#echo "#####################################################################"
-#echo ""
-#echo " Нужен NetworkManager ? "
-#while
-#    read -n1 -p  "
-#    1 - да
-#
-#    0 - нет : " i_network   # sends right after the keypress
-#    echo ''
-#    [[ "$i_network" =~ [^10] ]]
-#do
-#    :
-#done
-#if [[ $i_network  == 1 ]]; then
-#pacman -Sy networkmanager networkmanager-openvpn network-manager-applet --noconfirm
-#systemctl enable NetworkManager.service
-#elif [[ $i_network  == 0 ]]; then
-#echo " Установка NetworkManager пропущена "
-#echo ""
-#echo " Добавим dhcpcd в автозагрузку( для проводного интернета, который  получает настройки от роутера ) ? "
-#echo ""
-#echo "при необходимости это можно будет сделать уже в установленной системе "
-#while
-#    read -n1 -p  "
-#    1 - включить dhcpcd
-#
-#    0 - не включать dhcpcd " x_dhcpcd
-#    echo ''
-#    [[ "$x_dhcpcd" =~ [^10] ]]
-#do
-#    :
-#done
-#if [[ $x_dhcpcd == 0 ]]; then
-#  echo ' dhcpcd не включен в автозагрузку, при необходиости это можно будет сделать уже в установленной системе '
-#elif [[ $x_dhcpcd == 1 ]]; then
-#systemctl enable dhcpcd.service
-#clear
-#echo "Dhcpcd успешно добавлен в автозагрузку"
-#fi
-#fi
-clear
-echo ""
-
 echo "  Установка  программ закончена"
 
 echo ""

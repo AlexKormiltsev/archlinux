@@ -390,11 +390,11 @@ do
 done
  if [[ $x_pacstrap == 1 ]]; then
   clear
- pacstrap /mnt base linux linux-headers dhcpcd  which inetutils netctl base-devel wget  efibootmgr nano  linux-firmware wpa_supplicant dialog
+ pacstrap /mnt base linux linux-headers dhcpcd  which inetutils netctl base-devel wget  efibootmgr nano  linux-firmware wpa_supplicant dialog konsole terminus-font
  genfstab -U /mnt >> /mnt/etc/fstab
  elif [[ $x_pacstrap == 2 ]]; then
   clear
-  pacstrap /mnt base linux linux-headers dhcpcd which inetutils netctl base-devel wget nano linux-firmware  efibootmgr
+  pacstrap /mnt base linux linux-headers dhcpcd which inetutils netctl base-devel wget nano linux-firmware  efibootmgr konsole terminus-font
   genfstab -U /mnt >> /mnt/etc/fstab
   fi
 ##################################################
@@ -413,7 +413,7 @@ do
 done
 if [[ $int == 1 ]]; then
 
-  wget -P /mnt https://raw.githubusercontent.com/alexgantera/arch/master/chroot.sh
+  wget -P /mnt https://github.com/AlexKormiltsev/archlinux/blob/main/chroot.sh
   chmod +x /mnt/chroot.sh
   echo 'первый этап готов '
   echo 'ARCH-LINUX chroot'
@@ -425,7 +425,7 @@ echo "################################################################"
 umount -a
 reboot
   elif [[ $int == 2 ]]; then
-  arch-chroot /mnt sh -c "$(curl -fsSL https://raw.githubusercontent.com/alexgantera/arch/master/chroot.sh)"
+  arch-chroot /mnt sh -c "$(curl -fsSL https://github.com/AlexKormiltsev/archlinux/blob/main/chroot.sh)"
 echo "################################################################"
 echo "###################    T H E   E N D      ######################"
 echo "################################################################"
@@ -715,7 +715,7 @@ do
 done
 if [[ $int == 1 ]]; then
 
-  wget -P /mnt https://raw.githubusercontent.com/alexgantera/arch/master/chroot.sh
+  wget -P /mnt https://github.com/AlexKormiltsev/archlinux/blob/main/chroot.sh
   chmod +x /mnt/chroot.sh
   echo 'первый этап готов '
   echo 'ARCH-LINUX chroot'
@@ -727,7 +727,7 @@ echo "################################################################"
 umount -a
 reboot
   elif [[ $int == 2 ]]; then
-  arch-chroot /mnt sh -c "$(curl -fsSL https://raw.githubusercontent.com/alexgantera/arch/master/chroot.sh)"
+  arch-chroot /mnt sh -c "$(curl -fsSL https://github.com/AlexKormiltsev/archlinux/blob/main/chroot.sh)"
 echo "################################################################"
 echo "###################    T H E   E N D      ######################"
 echo "################################################################"
